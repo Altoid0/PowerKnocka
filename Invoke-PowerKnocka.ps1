@@ -42,7 +42,7 @@ function Invoke-PowerKnocka {
         $Class = Get-cimclass MSFT_TaskEventTrigger root/Microsoft/Windows/TaskScheduler
         $Trigger = $Class | New-CimInstance -ClientOnly
         $Trigger.Enabled = $true
-        $Trigger.Subscription = '<QueryList><Query Id="0" Path="Security"><Select Path="Security">*[System[Provider[@Name=''Microsoft-Windows-Security-Auditing''] and EventID=4625]]</Select></Query></QueryList>'
+        $Trigger.Subscription = '<QueryList><Query Id="0" Path="Security"><Select Path="Security">*[System[Provider[@Name="Microsoft-Windows-Security-Auditing"] and EventID=4625]]</Select></Query></QueryList>'
         $Principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\SYSTEM' -LogonType ServiceAccount
         $Settings = New-ScheduledTaskSettingsSet
         $ActionParameters = @{
