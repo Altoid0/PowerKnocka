@@ -1,0 +1,27 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
+
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
+- task: VMwareTask@1
+  inputs:
+    vCenterConnection: 'https://elsa.sdc.cpp'
+    action: 'Revert Snapshot of Virtual Machines'
+    vmList: '1790_DC01, 1790_DC02, 1790_Exchange, 1790_FTP, 1790_Server 2019, 1790_Windows 10, 1790_Windows 7'
+    targetdc: 'StudentDatacenter'
+    snapshotName: 'Base'
+    timeout: '300'
